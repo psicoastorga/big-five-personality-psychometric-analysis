@@ -1,5 +1,5 @@
 ---
-title: "TRABAJO FINAL PSICOMETRIA"
+title: "Analisis psicometrico del IPIP de 5 grandes factores de la personalidad "
 author: "Carlos Astorga"
 output: 
   pdf_document:
@@ -8,17 +8,11 @@ output:
 date: "2026-09-28"
 ---
 
----
-title: "TRABAJO FINAL PSICOMETRIA"
-author: "Carlos Astorga"
-output: 
-  pdf_document:
-    latex_engine: xelatex
-    dev: "cairo_pdf"
-date: "2026-09-28"
----
+Preparación de la base de datos 
 
-```{r}
+
+###########
+
 library(dplyr)
 
 # Fijar semilla para que la muestra y las variables
@@ -92,13 +86,26 @@ write.csv(
   row.names = FALSE
 )
 
-```
+############
 
 El analisis será realizado con una base de datos extraida de un repositorio publico https://ipip.ori.org/newBigFive5broadKey.htm el cual recopila puntuaciones del investario de los 5 grandes factores de la personalidad a través de un test digital de 50 preguntas.
 
 El mismo tiene un numero muy grande casos por lo que para facilitar el analisis se seleccionaron 800 casos y se generaron de forma aleatoria la variable edad y sexo, debido a que no forman parte de la base de datos original y son necesarios a fin de los analisis que se llevaran a cabo. 
 
+Se eliminaron de la base de datos las variables Elapsed time, testelapse y country. 
+- Todas las variables que terminan en _E (Elapsed time) miden el tiempo en milisegundos que tardó el usuario en hacer clic y responder a esa pregunta en específico.
+- testelapse: Segundos totales que le tomó al usuario completar las 50 preguntas.
+- country: El código del país de la persona (de dos letras, por ejemplo: US, AR, ES, MX) determinado por su IP.
 
+El test consta de 5 dimensiones de la personalidad 
+
+EXT1 a EXT10: Extraversión (Extraversion)
+EST1 a EST10: Neuroticismo / Estabilidad Emocional (Neuroticism / Emotional Stability)
+AGR1 a AGR10: Amabilidad / Afabilidad (Agreeableness)
+CSN1 a CSN10: Responsabilidad / Tesón (Conscientiousness)
+OPN1 a OPN10: Apertura a la Experiencia (Openness)
+
+y tiene los siguientes items con codificación de respuestas invertidas. 
 ⚠️ Invertidos: EXT2, EXT4, EXT6, EXT8, EXT10 (Frases como "No hablo mucho" o "Me mantengo en un segundo plano")
 ⚠️ Invertidos: EST1, EST3, EST5, EST6, EST7, EST8, EST9, EST10 (Frases como "Me estreso fácilmente" o "Me preocupo por las cosas").
 ⚠️ Invertidos: AGR1, AGR3, AGR5, AGR7 (Frases como "Siento poca preocupación por los demás" o "Insulto a las personas")
@@ -107,15 +114,109 @@ El mismo tiene un numero muy grande casos por lo que para facilitar el analisis 
 
 FUENTE: https://ipip.ori.org/newBigFive5broadKey.htm
 
-EXT1 a EXT10: Extraversión (Extraversion)
-EST1 a EST10: Neuroticismo / Estabilidad Emocional (Neuroticism / Emotional Stability)
-AGR1 a AGR10: Amabilidad / Afabilidad (Agreeableness)
-CSN1 a CSN10: Responsabilidad / Tesón (Conscientiousness)
-OPN1 a OPN10: Apertura a la Experiencia (Openness)
+##---------------------------------------------------
 
-Todas las variables que terminan en _E (Elapsed time) miden el tiempo en milisegundos que tardó el usuario en hacer clic y responder a esa pregunta en específico.
+Analisis psicometrico del IPIP de 5 grandes factores de la personalidad 
 
-testelapse: Segundos totales que le tomó al usuario completar las 50 preguntas.
+```{r}
+datos <- read.csv("muestra_jamovy.csv")
+```
 
-country: El código del país de la persona (de dos letras, por ejemplo: US, AR, ES, MX) determinado por su IP.
+Ver si los items tienen valores en 0 o en Na
+
+```{r}
+library("tidyverse")
+
+items <- datos %>%
+  select(EXT1:EXT10, EST1:EST10, AGR1:AGR10,
+         CSN1:CSN10, OPN1:OPN10)
+
+sapply(items, function(x) sum(x == 0, na.rm = TRUE))
+
+items <- datos %>%
+  select(EXT1:EXT10, EST1:EST10, AGR1:AGR10,
+         CSN1:CSN10, OPN1:OPN10)
+
+# Contar datos faltantes por ítem
+sapply(items, function(x) sum(is.na(x)))
+```
+Eliminar estos valores 
+
+```{r}
+# Definir los 50 ítems
+items <- c(
+  paste0("EXT", 1:10),
+  paste0("EST", 1:10),
+  paste0("AGR", 1:10),
+  paste0("CSN", 1:10),
+  paste0("OPN", 1:10)
+)
+
+# Eliminar casos con al menos un 0 o NA en los ítems
+datos <- datos %>%
+  filter(
+    if_all(
+      all_of(items),
+      ~ !is.na(.x) & .x != 0
+    )
+  )
+```
+
+```{r}
+table(datos$EXT2, useNA="ifany")
+```
+
+Invertir items 
+Invertidos: EXT2, EXT4, EXT6, EXT8, EXT10 (Frases como "No hablo mucho" o "Me mantengo en un segundo plano")
+⚠️ Invertidos: EST1, EST3, EST5, EST6, EST7, EST8, EST9, EST10 (Frases como "Me estreso fácilmente" o "Me preocupo por las cosas").
+⚠️ Invertidos: AGR1, AGR3, AGR5, AGR7 (Frases como "Siento poca preocupación por los demás" o "Insulto a las personas")
+⚠️ Invertidos: CSN2, CSN4, CSN6, CSN8 (Frases como "Dejo mis pertenencias tiradas por ahí" o "Hago un desastre con las cosas")
+⚠️ Invertidos: OPN2, OPN4, OPN6 (Frases como "Tengo dificultad para entender ideas abstractas").
+
+```{r}
+items_invertidos <- c(
+  "EXT2", "EXT4", "EXT6", "EXT8", "EXT10",
+  "EST1", "EST3", "EST5", "EST6", "EST7",
+  "EST8", "EST9", "EST10",
+  "AGR1", "AGR3", "AGR5", "AGR7",
+  "CSN2", "CSN4", "CSN6", "CSN8",
+  "OPN2", "OPN4", "OPN6"
+)
+
+# Invertir las respuestas de 1 a 5
+datos <- datos %>%
+  mutate(
+    across(
+      all_of(items_invertidos),
+      ~ case_when(
+        .x %in% 1:5 ~ 6 - .x,
+        TRUE ~ as.numeric(.x)
+      )
+    )
+  )
+```
+
+```{r}
+table(datos$EXT2, useNA="ifany")
+```
+
+```{r}
+# Guardar la base final
+write.csv(
+  datos,
+  "muestra_final.csv",
+  row.names = FALSE
+)
+```
+
+######-----------------------
+
+
+```{r}
+datos <- read.csv("muestra_final.csv")
+
+table(datos$EXT2, useNA="ifany")
+```
+
+
 
