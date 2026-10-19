@@ -116,7 +116,7 @@ FUENTE: https://ipip.ori.org/newBigFive5broadKey.htm
 
 ##---------------------------------------------------
 
-Analisis psicometrico del IPIP de 5 grandes factores de la personalidad 
+Evaluación de datos faltantes o nulos e inversión de los items según codificación de respuestas en la escala 
 
 ```{r}
 datos <- read.csv("muestra_jamovy.csv")
@@ -216,6 +216,73 @@ write.csv(
 datos <- read.csv("muestra_final.csv")
 
 table(datos$EXT2, useNA="ifany")
+```
+
+
+##Analisis psicometrico del IPIP de 5 grandes factores de la personalidad 
+
+```{r}
+library(lavaan)
+
+ModeloAFC <- '
+  Extraversion =~ EXT1 + EXT2 + EXT3 + EXT4 + EXT5 +
+                  EXT6 + EXT7 + EXT8 + EXT9 + EXT10
+
+  Neuroticismo =~ EST1 + EST2 + EST3 + EST4 + EST5 +
+                  EST6 + EST7 + EST8 + EST9 + EST10
+
+  Amabilidad =~ AGR1 + AGR2 + AGR3 + AGR4 + AGR5 +
+                AGR6 + AGR7 + AGR8 + AGR9 + AGR10
+
+  Responsabilidad =~ CSN1 + CSN2 + CSN3 + CSN4 + CSN5 +
+                     CSN6 + CSN7 + CSN8 + CSN9 + CSN10
+
+  Apertura =~ OPN1 + OPN2 + OPN3 + OPN4 + OPN5 +
+              OPN6 + OPN7 + OPN8 + OPN9 + OPN10
+'
+
+# 3. Ajustar el AFC con WLSMV
+ajuste_dwls <- cfa(
+  model = ModeloAFC,
+  data = datos,
+  ordered = items,
+  estimator = "WLSMV",
+  std.lv = TRUE
+)
+
+# 4. Resumen del modelo
+summary(
+  ajuste_dwls,
+  fit.measures = TRUE,
+  standardized = TRUE
+)
+
+# 5. Índices de ajuste principales
+fitMeasures(
+  ajuste_dwls,
+  c(
+    "chisq",
+    "df",
+    "pvalue",
+    "cfi",
+    "tli",
+    "rmsea",
+    "rmsea.ci.lower",
+    "rmsea.ci.upper",
+    "srmr"
+  )
+)
+
+# 6. Cargas factoriales estandarizadas
+parameterEstimates(
+  ajuste_dwls,
+  standardized = TRUE
+) %>%
+  filter(op == "=~") %>%
+  select(lhs, rhs, est, se, z, pvalue, std.all)
+
+# 7. Correlaciones entre factores
+lavInspect(ajuste_dwls, "cor.lv")
 ```
 
 
