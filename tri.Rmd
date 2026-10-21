@@ -1,0 +1,36 @@
+---
+title: "Preparación para TRI"
+output: html_document
+date: "2026-10-21"
+---
+
+```{r}
+datos <- read.csv("muestra_final.csv")
+
+datos
+
+```
+```{r}
+library(tidyverse)
+
+datos <- datos %>%
+  mutate(across(1:50, ~ .x - 1))
+```
+```{r}
+datos
+```
+
+```{r}
+# Guardar la base final
+write.csv(
+  datos,
+  "muestra_tri.csv",
+  row.names = FALSE
+)
+```
+
+```{r}
+datostri <- read.csv("muestra_tri.csv")
+datostri
+```
+
